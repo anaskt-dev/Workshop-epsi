@@ -71,10 +71,10 @@ function render() {
               <button class="open-puzzle" data-id="1" style="width:100%">${state.solved[1] ? '✅' : '🧩'} #2 Labyrinthe des pensées</button>
             </li>
             <li style="margin:.25rem 0;">
-              <button class="open-puzzle" data-id="2" style="width:100%">${state.solved[2] ? '✅' : '🧩'} #3 Mot de passe émotionnel</button>
+              <button class="open-puzzle" data-id="2" style="width:100%">${state.solved[2] ? '✅' : '🧩'} #3 Taquin 4x4 (jeu des chiffres à déplacer)</button>
             </li>
             <li style="margin:.25rem 0;">
-              <button class="open-puzzle" data-id="3" style="width:100%">${state.solved[3] ? '✅' : '🧩'} #4 Boîte à messages</button>
+              <button class="open-puzzle" data-id="3" style="width:100%">${state.solved[3] ? '✅' : '🧩'} #4 Cadenas à combinaison (Mastermind simplifié)</button>
             </li>
           </ol>
           <hr/>
@@ -657,88 +657,253 @@ if (idx === 0) {
 
 
       // ===== P2 — MOT DE PASSE ÉMOTIONNEL — Chiffre 6 =====
-      if (idx === 2) {
-        title.textContent = 'Énigme #3 — Mot de passe émotionnel';
-        const targetSeq = ['😔','🤔','🗣️','😊'];
-        body.innerHTML = `
-          <p>Composez la clé émotionnelle (glissez/déposez dans le bon ordre) :</p>
-          <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
-            <div id="palette" style="display:flex; gap:.5rem; flex-wrap:wrap; padding:.5rem; border:1px dashed #444; min-width:240px;">
-              ${['😊','😔','🗣️','🤔'].map(e => `<button class="emo" draggable="true" data-emo="${e}" style="font-size:28px; padding:.25rem .5rem; background:#1b1b1b; border:1px solid #333; cursor:grab;">${e}</button>`).join('')}
-            </div>
-            <div id="slots" style="display:flex; gap:.5rem;">
-              ${[0,1,2,3].map(i => `<div class="slot" data-idx="${i}" style="width:52px; height:52px; border:2px dashed #555; display:flex; align-items:center; justify-content:center; font-size:26px;"></div>`).join('')}
-            </div>
-          </div>
-          <div style="margin-top:.75rem; display:flex; gap:.5rem;">
-            <button id="validateSeq">Valider</button>
-            <button id="resetSeq">Réinitialiser</button>
-          </div>
-          <p id="msg" style="margin-top:.5rem;"></p>
-        `;
-        const palette = body.querySelector<HTMLDivElement>('#palette')!;
-        const slots = Array.from(body.querySelectorAll<HTMLDivElement>('.slot'));
-        const msg = body.querySelector<HTMLParagraphElement>('#msg')!;
-        let dragEmo: string | null = null;
-        palette.querySelectorAll<HTMLButtonElement>('.emo').forEach(btn => {
-          btn.addEventListener('dragstart', () => { dragEmo = btn.dataset.emo || null; });
-          btn.addEventListener('dragend', () => { dragEmo = null; });
-        });
-        slots.forEach(slot => {
-          slot.addEventListener('dragover', (e) => e.preventDefault());
-          slot.addEventListener('drop', (e) => { e.preventDefault(); if (!dragEmo) return; slot.textContent = dragEmo; slot.setAttribute('data-emo', dragEmo); });
-        });
-        body.querySelector<HTMLButtonElement>('#resetSeq')!.addEventListener('click', (e) => { e.preventDefault(); slots.forEach(s => { s.textContent=''; s.removeAttribute('data-emo'); }); msg.textContent=''; });
-        body.querySelector<HTMLButtonElement>('#validateSeq')!.addEventListener('click', (e) => {
-          e.preventDefault();
-          const current = slots.map(s => s.getAttribute('data-emo') || '');
-          const ok = current.join(',') === targetSeq.join(',');
-          if (ok) { msg.textContent = `✅ Clé correcte. Chiffre obtenu : ${state.digits[2]}`; state.solved[2] = true; setTimeout(()=>{ render(); modal.close(); },700); }
-          else msg.textContent = '❌ Mauvais ordre. Pense : tristesse → réflexion → parole → apaisement.';
-        });
-        (document.getElementById('puzzleModal') as HTMLDialogElement).showModal();
-        return;
-      }
+     // ===== P? — Taquin 4x4 (jeu des chiffres à déplacer) =====
+if (idx === 2) {
+  title.textContent = 'Énigme — Taquin (remets les chiffres dans l’ordre)';
 
-      // ===== P3 — BOÎTE À MESSAGES — Chiffre 2 =====
-      if (idx === 3) {
-        title.textContent = 'Énigme #4 — Boîte à messages (signal caché)';
-        body.innerHTML = `
-          <p>L’un de ces messages contient un <strong>appel à l’aide</strong> dissimulé (acrostiche). Clique dessus.</p>
-          <div style="display:grid; grid-template-columns:1fr; gap:.5rem;">
-            <div class="post" data-good="false" style="padding:.75rem; background:#1b1b1b; border:1px solid #333;">
-              <strong>@Noah</strong><br/>
-              <span>Franchement tout roule cette semaine, j’ai enchaîné les entraînements. On se voit demain ?</span>
-            </div>
-            <div class="post" data-good="true" style="padding:.75rem; background:#1b1b1b; border:1px solid #333;">
-              <strong>@Lina</strong><br/>
-              <span>
-                <span style="display:block">A l’école je fais de mon mieux,</span>
-                <span style="display:block">I l arrive que je n’y arrive plus,</span>
-                <span style="display:block">D es fois j’aimerais disparaître,</span>
-                <span style="display:block">E t si on en parlait ?</span>
-              </span>
-            </div>
-            <div class="post" data-good="false" style="padding:.75rem; background:#1b1b1b; border:1px solid #333;">
-              <strong>@Eden</strong><br/>
-              <span>J’ai commencé un nouveau jeu. Trop fun. Je dois juste dormir un peu plus 😂</span>
-            </div>
-          </div>
-          <p id="msg" style="margin-top:.5rem;"></p>
-        `;
-        const posts = body.querySelectorAll<HTMLDivElement>('.post');
-        const msg = body.querySelector<HTMLParagraphElement>('#msg')!;
-        posts.forEach(p => p.addEventListener('click', () => {
-          const good = p.dataset.good === 'true';
-          if (good) { msg.textContent = `✅ Bien repéré : l’acrostiche “A I D E”. Chiffre obtenu : ${state.digits[3]}`; state.solved[3] = true; setTimeout(()=>{ render(); modal.close(); },800); }
-          else msg.textContent = '❌ Regarde les premières lettres de chaque ligne…';
-        }));
-        (document.getElementById('puzzleModal') as HTMLDialogElement).showModal();
-        return;
+  const size = 4; // 4x4
+  const GOAL = Array.from({ length: size * size }, (_, i) => (i + 1) % (size * size)); // 1..15 puis 0 (case vide)
+  let tiles: number[] = [];
+
+  body.innerHTML = `
+    <style>
+      .taquin-wrap { display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap; }
+      .taquin-grid { display:grid; grid-template-columns: repeat(${size}, 62px); gap:6px; }
+      .tile { width:62px; height:62px; display:flex; align-items:center; justify-content:center;
+              background:#111; border:1px solid #333; border-radius:10px; font-weight:800; font-size:20px; cursor:pointer; }
+      .tile.num { background:#1f2937; border-color:#475569; }
+      .tile.num:hover { filter:brightness(1.1); }
+      .tile.blank { background:#0b0b0b; border-style:dashed; cursor:default; }
+      .panel { min-width:240px; }
+      .btn { padding:.5rem .75rem; background:#1b1b1b; border:1px solid #333; color:#f3f4f6; border-radius:6px; cursor:pointer; }
+      .btn:active { transform: translateY(1px); }
+      .ok { color:#22c55e; }
+      .warn { color:#fca5a5; }
+    </style>
+
+    <div class="taquin-wrap">
+      <div id="grid" class="taquin-grid"></div>
+      <div class="panel">
+        <p>But : obtenir <b>1 → 15</b> avec la case vide en bas à droite.</p>
+        <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0;">
+          <button id="shuffle" class="btn">Mélanger</button>
+          <button id="reset" class="btn">Réinitialiser</button>
+        </div>
+        <p style="opacity:.9;">Astuce : seules les tuiles <i>adjacentes</i> à la case vide peuvent bouger (clic ou flèches).</p>
+        <p id="msg" style="margin-top:.5rem;"></p>
+      </div>
+    </div>
+  `;
+
+  const gridEl = body.querySelector<HTMLDivElement>('#grid')!;
+  const msg = body.querySelector<HTMLParagraphElement>('#msg')!;
+  const modalEl = document.getElementById('puzzleModal') as HTMLDialogElement;
+
+  // ---------- utils ----------
+  const clone = <T,>(a: T[]) => a.slice();
+
+  function inversions(arr: number[]): number {
+    const flat = arr.filter(n => n !== 0);
+    let inv = 0;
+    for (let i = 0; i < flat.length; i++)
+      for (let j = i + 1; j < flat.length; j++)
+        if (flat[i] > flat[j]) inv++;
+    return inv;
+  }
+  function blankRowFromBottom(arr: number[], n = size): number {
+    const idx = arr.indexOf(0);
+    const row = Math.floor(idx / n); // 0 = top row
+    return n - row; // 1 = bottom row
+  }
+  // condition de solvabilité (15-puzzle)
+  function isSolvable(arr: number[], n = size): boolean {
+    const inv = inversions(arr);
+    if (n % 2 === 1) return inv % 2 === 0;
+    const blankFromBottom = blankRowFromBottom(arr, n);
+    return (blankFromBottom % 2 === 0) ? (inv % 2 === 1) : (inv % 2 === 0);
+  }
+  function shuffledSolvable(): number[] {
+    const a = clone(GOAL);
+    // Fisher–Yates
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    if (!isSolvable(a)) {
+      // swap deux non-blanks pour inverser la parité
+      const i = a.findIndex(x => x !== 0);
+      let j = a.findIndex((x, k) => x !== 0 && k !== i);
+      if (j === -1) j = i + 1;
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function isSolved(arr = tiles) {
+    for (let i = 0; i < arr.length; i++) if (arr[i] !== GOAL[i]) return false;
+    return true;
+  }
+  const indexToRC = (i: number) => ({ r: Math.floor(i / size), c: i % size });
+  const rcToIndex = (r: number, c: number) => r * size + c;
+
+  function canMove(tileIndex: number): boolean {
+    const blank = tiles.indexOf(0);
+    const { r: tr, c: tc } = indexToRC(tileIndex);
+    const { r: br, c: bc } = indexToRC(blank);
+    return (Math.abs(tr - br) + Math.abs(tc - bc)) === 1;
+  }
+
+  function moveIndex(tileIndex: number) {
+    if (!canMove(tileIndex)) return;
+    const blank = tiles.indexOf(0);
+    [tiles[tileIndex], tiles[blank]] = [tiles[blank], tiles[tileIndex]];
+    draw();
+    if (isSolved()) {
+      msg.innerHTML = `✅ Bravo ! Chiffres remis dans l’ordre. Chiffre obtenu : <b>${state.digits[2]}</b>`;
+      state.solved[2] = true;
+      setTimeout(() => { render(); modalEl.close(); }, 900);
+    } else {
+      msg.textContent = '';
+    }
+  }
+
+  // ---------- rendu ----------
+  function draw() {
+    gridEl.innerHTML = '';
+    tiles.forEach((n, idx) => {
+      const d = document.createElement('button');
+      d.className = 'tile ' + (n === 0 ? 'blank' : 'num');
+      d.textContent = n === 0 ? '' : String(n);
+      if (n !== 0) d.addEventListener('click', (e) => { e.preventDefault(); moveIndex(idx); });
+      gridEl.appendChild(d);
+    });
+  }
+
+  // ---------- commandes ----------
+  function shuffle() { tiles = shuffledSolvable(); draw(); msg.textContent = ''; }
+  function reset()   { tiles = clone(GOAL); draw(); msg.textContent = 'Réinitialisé.'; }
+
+  body.querySelector<HTMLButtonElement>('#shuffle')!.addEventListener('click', (e) => { e.preventDefault(); shuffle(); });
+  body.querySelector<HTMLButtonElement>('#reset')!.addEventListener('click',   (e) => { e.preventDefault(); reset();   });
+
+  // Contrôle clavier (flèches)
+  modalEl.addEventListener('keydown', (ev) => {
+    const blank = tiles.indexOf(0);
+    const { r, c } = indexToRC(blank);
+    if (ev.key === 'ArrowUp')   { ev.preventDefault(); if (r < size - 1) moveIndex(rcToIndex(r + 1, c)); }   // pousser vers le bas
+    if (ev.key === 'ArrowDown') { ev.preventDefault(); if (r > 0)         moveIndex(rcToIndex(r - 1, c)); }   // pousser vers le haut
+    if (ev.key === 'ArrowLeft') { ev.preventDefault(); if (c < size - 1) moveIndex(rcToIndex(r, c + 1)); }   // pousser à droite
+    if (ev.key === 'ArrowRight'){ ev.preventDefault(); if (c > 0)         moveIndex(rcToIndex(r, c - 1)); }   // pousser à gauche
+  });
+
+  // ---------- init ----------
+  shuffle(); // mélange aléatoire mais solvable
+  modal.showModal();
+  return;
+}
+
+
+    
+      // ===== P3 — Cadenas à combinaison (Mastermind simplifié) =====
+if (idx === 3) {
+  title.textContent = 'Énigme #4 — Cadenas à combinaison';
+
+  const SECRET = '3719'; // ← tu peux le changer ici
+  const maxAttempts = 10;
+  let attempts = 0;
+
+  body.innerHTML = `
+    <p>Un cadenas protège le serveur. Devine la <b>combinaison à 4 chiffres</b>.</p>
+    <p>Pour chaque tentative :</p>
+    <ul>
+      <li>✅ = bon chiffre bien placé</li>
+      <li>🟡 = bon chiffre mal placé</li>
+      <li>❌ = chiffre absent</li>
+    </ul>
+    <div style="display:flex; gap:.5rem; margin-top:.75rem; flex-wrap:wrap;">
+      <input id="guessInput" type="text" maxlength="4" inputmode="numeric" placeholder="----"
+             style="padding:.5rem; font-size:20px; letter-spacing:.4rem; text-align:center; width:140px;">
+      <button id="submitGuess" class="btn">Essayer</button>
+    </div>
+    <div id="history" style="margin-top:1rem; font-family:monospace;"></div>
+    <p id="msg" style="margin-top:.5rem;"></p>
+  `;
+
+  const input = body.querySelector<HTMLInputElement>('#guessInput')!;
+  const btn = body.querySelector<HTMLButtonElement>('#submitGuess')!;
+  const historyEl = body.querySelector<HTMLDivElement>('#history')!;
+  const msg = body.querySelector<HTMLParagraphElement>('#msg')!;
+  const modalEl = document.getElementById('puzzleModal') as HTMLDialogElement;
+
+  function checkGuess(guess: string) {
+    const res: string[] = [];
+    const secretArr = SECRET.split('');
+    const guessArr = guess.split('');
+
+    // Étape 1 : exact match
+    const usedSecret = Array(secretArr.length).fill(false);
+    const usedGuess = Array(guessArr.length).fill(false);
+
+    for (let i = 0; i < guessArr.length; i++) {
+      if (guessArr[i] === secretArr[i]) {
+        res[i] = '✅';
+        usedSecret[i] = true;
+        usedGuess[i] = true;
+      }
+    }
+
+    // Étape 2 : présent mais mal placé
+    for (let i = 0; i < guessArr.length; i++) {
+      if (usedGuess[i]) continue;
+      const idxSecret = secretArr.findIndex((s, j) => s === guessArr[i] && !usedSecret[j]);
+      if (idxSecret !== -1) {
+        res[i] = '🟡';
+        usedSecret[idxSecret] = true;
+      } else {
+        res[i] = '❌';
+      }
+    }
+
+    return res.join(' ');
+  }
+
+  function submit() {
+    const guess = input.value.trim();
+    if (!/^\d{4}$/.test(guess)) {
+      msg.textContent = '⚠️ Entrez 4 chiffres.';
+      return;
+    }
+    attempts++;
+    const feedback = checkGuess(guess);
+    const line = `${guess} → ${feedback}`;
+    const div = document.createElement('div');
+    div.textContent = line;
+    historyEl.prepend(div);
+
+    if (guess === SECRET) {
+      msg.innerHTML = `✅ Bonne combinaison ! Chiffre obtenu : <b>${state.digits[3]}</b>`;
+      state.solved[3] = true;
+      setTimeout(() => { render(); modalEl.close(); }, 900);
+    } else if (attempts >= maxAttempts) {
+      msg.textContent = `⛔ Nombre de tentatives max atteint (${maxAttempts}).`;
+      input.disabled = true; btn.disabled = true;
+    } else {
+      msg.textContent = `Tentative ${attempts}/${maxAttempts}`;
+    }
+
+    input.value = '';
+    input.focus();
+  }
+
+  btn.addEventListener('click', (e) => { e.preventDefault(); submit(); });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+
+  modalEl.showModal();
+  return;
+}
       }
     }
   }
-}
+
 
 render();
 
