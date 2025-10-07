@@ -139,69 +139,103 @@ function render() {
       const body = document.getElementById('puzzleBody')!;
 
       // ===== P0 — DISQUE CHIFFRANT MULTI-NIVEAUX (couleurs) — Chiffre 4 =====
-      // ===== P0 — DISQUE CHIFFRANT (symboles + anneaux indépendants) =====
+      // ===== P0 — DISQUE CHIFFRANT (alignement live : symbole + chiffre + lettre) =====
 if (idx === 0) {
-  title.textContent = 'Énigme #1 — Disque chiffrant';
+  title.textContent = 'Énigme #1 — Disque chiffrant (alignement automatique)';
 
+  // --- Paramétrage de l'énigme ---
   const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const N = ALPHA.length;
-  const CIPHERTEXT = 'HPKL'; // AIDE chiffré par +7
-  const OFFSET_SOLUTION = 7;
 
-  // Symboles à afficher sur les anneaux externes/médians
+  // Mot chiffré (exemple) et solution (César +7)
+  const CIPHERTEXT = 'HPKL';           // à l’écran
+  const SHIFTS      = [7, 7, 7, 7];     // décalage à exiger par étape (tu peux varier)
+  const SYMBOL_SEQ  = ['Δ','Ω','∑','∏']; // symbole à exiger à chaque étape (anneau externe)
+  // Le mot clair obtenu doit être "AIDE"
+
+  // Anneaux visuels
   const SYMBOLS: string[] = [
-    'Α','Β','Γ','Δ','Ε','Ζ','Η','Θ','Ι','Κ','Λ','Μ','Ν','Ξ','Ο','Π','Ρ','Σ','Τ','Υ','Φ','Χ','Ψ','Ω','∑','∏'
+    'Α','Β','Γ','Δ','Ε','Ζ','Η','Θ','Ι','Κ','Λ','Μ',
+    'Ν','Ξ','Ο','Π','Ρ','Σ','Τ','Υ','Φ','Χ','Ψ','Ω','∑','∏'
   ];
+  const NUMS = Array.from({length:N}, (_,i)=>String(i+1));
 
-  // Offsets indépendants
-  let offsetMid = 0;  // médian (mauve) -> chiffrement
-  let offsetNum = 0;  // chiffres (orange) -> repère
+  // Offsets indépendants (0..25)
+  let offsetOuter = 0;  // SYMBOLS (externe, crème)
+  let offsetMid   = 0;  // NUMBERS (médian, orange)
+  let offsetInner = 0;  // LETTERS (intérieur, mauve)
+
+  // Progression
+  let stepIndex = 0;     // 0..len-1
+  let discovered = '';   // lettres trouvées
+  let processedForStep = false; // évite de déclencher 50 fois la même étape pendant qu’on tient la souris
 
   body.innerHTML = `
     <style>
       .wrap-disk { display:flex; gap:1.25rem; align-items:flex-start; flex-wrap:wrap; }
-      .panel { min-width:320px; max-width:460px; }
+      .panel { min-width:320px; max-width:520px; }
       .btn { padding:.5rem .75rem; background:#1b1b1b; border:1px solid #333; color:#f3f4f6; border-radius:6px; cursor:pointer; }
       .btn:active { transform: translateY(1px); }
-      .bar { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-top:.25rem; }
+      .bar { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-top:.4rem; }
       .box { padding:.6rem .8rem; border:1px solid #444; background:#0f1012; border-radius:8px; }
       .live { font-variant: small-caps; letter-spacing:.18rem; }
-      .hint { opacity:.9; font-size:.9rem; }
+      .pill { display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .5rem; border:1px solid #333; border-radius:999px; background:#141414; }
+      .sym { font-weight:800; }
+      .num { font-weight:800; color:#b45309; }
+      .let { font-weight:800; color:#7e22ce; }
+      .ok { color:#22c55e; }
       .warn { color:#fca5a5; }
     </style>
 
     <div class="wrap-disk">
       <div id="svgHost"></div>
+
       <div class="panel">
-        <div class="box">
+        <div class="box" style="margin-bottom:.5rem;">
           <div>Message chiffré : <strong>${CIPHERTEXT}</strong></div>
-          <div>Décodage : <span id="plain" class="live">----</span></div>
+          <div>Mot découvert : <span id="found" class="live">____</span></div>
         </div>
 
-        <div class="bar">
-          <strong>Anneau médian (mauve)</strong>
-          <button class="btn rot-mid" data-step="-5">⟲ −5</button>
-          <button class="btn rot-mid" data-step="-1">⟲ −1</button>
-          <button class="btn rot-mid" data-step="+1">⟲ +1</button>
-          <button class="btn rot-mid" data-step="+5">⟲ +5</button>
-          <button id="snapMid" class="btn">Astuce</button>
+        <div class="box" id="taskBox">
+          <div>Étape <span id="stepNum">1</span> / ${CIPHERTEXT.length}</div>
+          <div style="margin-top:.25rem">Cible à aligner au repère :</div>
+          <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.25rem;">
+            <span class="pill">Symbole <span id="tSym" class="sym">Δ</span></span>
+            <span class="pill">Chiffre <span id="tNum" class="num">7</span></span>
+            <span class="pill">Lettre <span id="tLet" class="let">H</span></span>
+          </div>
+
+          <div style="margin-top:.6rem">Au repère (live) :</div>
+          <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.25rem;">
+            <span class="pill">Symbole <span id="cSym" class="sym">—</span></span>
+            <span class="pill">Chiffre <span id="cNum" class="num">—</span></span>
+            <span class="pill">Lettre <span id="cLet" class="let">—</span></span>
+          </div>
+          <p id="matchMsg" style="margin:.5rem 0 0;"></p>
         </div>
 
-        <div class="bar">
-          <strong>Anneau chiffres (orange)</strong>
-          <button class="btn rot-num" data-step="-5">⟲ −5</button>
-          <button class="btn rot-num" data-step="-1">⟲ −1</button>
-          <button class="btn rot-num" data-step="+1">⟲ +1</button>
-          <button class="btn rot-num" data-step="+5">⟲ +5</button>
+        <div class="box" style="margin-top:.5rem;">
+          <div><strong>Contrôles (drag direct aussi sur chaque couronne)</strong></div>
+          <div class="bar"><span style="min-width:160px;">Symbole (extérieur)</span>
+            <button class="btn rot-out" data-step="-5">⟲ −5</button>
+            <button class="btn rot-out" data-step="-1">⟲ −1</button>
+            <button class="btn rot-out" data-step="+1">⟲ +1</button>
+            <button class="btn rot-out" data-step="+5">⟲ +5</button>
+          </div>
+          <div class="bar"><span style="min-width:160px;">Chiffre (médian)</span>
+            <button class="btn rot-mid" data-step="-5">⟲ −5</button>
+            <button class="btn rot-mid" data-step="-1">⟲ −1</button>
+            <button class="btn rot-mid" data-step="+1">⟲ +1</button>
+            <button class="btn rot-mid" data-step="+5">⟲ +5</button>
+          </div>
+          <div class="bar"><span style="min-width:160px;">Lettre (intérieur)</span>
+            <button class="btn rot-in" data-step="-5">⟲ −5</button>
+            <button class="btn rot-in" data-step="-1">⟲ −1</button>
+            <button class="btn rot-in" data-step="+1">⟲ +1</button>
+            <button class="btn rot-in" data-step="+5">⟲ +5</button>
+            <button id="snapIn" class="btn">Astuce +7</button>
+          </div>
         </div>
-
-        <p class="hint">Tourne le médian jusqu’à lire le mot clair, puis valide.</p>
-
-        <div class="bar">
-          <input id="manual" placeholder="Tape le mot clair…" style="flex:1; padding:.5rem .75rem; background:#0f0f0f; border:1px solid #333; color:#fff; border-radius:6px;">
-          <button id="validate" class="btn">Valider</button>
-        </div>
-        <p id="msg"></p>
       </div>
     </div>
   `;
@@ -210,9 +244,10 @@ if (idx === 0) {
   const host = body.querySelector<HTMLDivElement>('#svgHost')!;
   const size = 360;
   const cx = size/2, cy = size/2;
-  const outerR = 170;
-  const midR1 = 140, midR0 = 108;
-  const numR1 = 108, numR0 = 78;
+
+  const outerR = 170;               // externe SYMBOLS (rotatif)
+  const midR1 = 140, midR0 = 108;   // médian NUMBERS
+  const inR1  = 108, inR0  = 78;    // intérieur LETTERS
   const hubR = 62, pivotR = 10;
 
   const svgNS = 'http://www.w3.org/2000/svg';
@@ -221,30 +256,25 @@ if (idx === 0) {
   svg.setAttribute('height', String(size));
 
   const gOuter = document.createElementNS(svgNS, 'g');
-  const gMid = document.createElementNS(svgNS, 'g');
-  const gNum = document.createElementNS(svgNS, 'g');
-  const gTop = document.createElementNS(svgNS, 'g');
-  svg.appendChild(gOuter); svg.appendChild(gMid); svg.appendChild(gNum); svg.appendChild(gTop);
+  const gMid   = document.createElementNS(svgNS, 'g');
+  const gInner = document.createElementNS(svgNS, 'g');
+  const gTop   = document.createElementNS(svgNS, 'g');
+  svg.appendChild(gOuter); svg.appendChild(gMid); svg.appendChild(gInner); svg.appendChild(gTop);
   host.appendChild(svg);
 
   function ring(g: SVGGElement, rOuter: number, rInner: number, fill: string, stroke: string) {
     const p = document.createElementNS(svgNS, 'path');
     const d = `
-      M ${cx - rOuter},${cy}
-      a ${rOuter},${rOuter} 0 1,0 ${2*rOuter},0
-      a ${rOuter},${rOuter} 0 1,0 ${-2*rOuter},0
-      M ${cx - rInner},${cy}
-      a ${rInner},${rInner} 0 1,1 ${2*rInner},0
-      a ${rInner},${rInner} 0 1,1 ${-2*rInner},0
+      M ${cx - rOuter},${cy} a ${rOuter},${rOuter} 0 1,0 ${2*rOuter},0 a ${rOuter},${rOuter} 0 1,0 ${-2*rOuter},0
+      M ${cx - rInner},${cy} a ${rInner},${rInner} 0 1,1 ${2*rInner},0 a ${rInner},${rInner} 0 1,1 ${-2*rInner},0
     `;
     p.setAttribute('d', d);
     p.setAttribute('fill', fill);
-    p.setAttribute('fill-rule','evenodd');
+    p.setAttribute('fill-rule', 'evenodd');
     p.setAttribute('stroke', stroke);
     g.appendChild(p);
   }
-
-  function radialLabels(g: SVGGElement, items: string[], r: number, fontPx: number, color = '#111') {
+  function radialLabels(g: SVGGElement, items: string[], r: number, fontPx: number, color = '#111', weight='700') {
     const step = 360 / items.length;
     for (let i=0; i<items.length; i++) {
       const ang = -90 + i * step;
@@ -254,7 +284,7 @@ if (idx === 0) {
       t.setAttribute('fill', color);
       t.setAttribute('font-size', String(fontPx));
       t.setAttribute('font-family', '"Times New Roman", serif');
-      t.setAttribute('font-weight', '700');
+      t.setAttribute('font-weight', weight);
       t.setAttribute('text-anchor', 'middle');
       t.setAttribute('dominant-baseline', 'central');
       t.setAttribute('transform', `rotate(${ang} ${cx} ${cy})`);
@@ -263,31 +293,29 @@ if (idx === 0) {
     }
   }
 
-  // Anneau externe
+  // EXTERIEUR SYMBOLS
   ring(gOuter, outerR, midR1, '#e7e5e4', '#9ca3af');
   radialLabels(gOuter, SYMBOLS, (outerR + midR1)/2, 18, '#111');
 
-  // Anneau médian
-  ring(gMid, midR1, midR0, '#c7a0c9', '#7e22ce');
-  radialLabels(gMid, SYMBOLS, (midR1 + midR0)/2, 16, '#1a1625');
+  // MEDIAN NUMBERS
+  ring(gMid, midR1, midR0, '#eab676', '#b45309');
+  radialLabels(gMid, NUMS, (midR1 + midR0)/2, 14, '#1a1207');
 
-  // Anneau chiffres
-  const NUMS = Array.from({length:N}, (_,i)=>String(i+1));
-  ring(gNum, numR1, numR0, '#eab676', '#b45309');
-  radialLabels(gNum, NUMS, (numR1 + numR0)/2, 14, '#1a1207');
+  // INTERIEUR LETTERS
+  ring(gInner, inR1, inR0, '#c7a0c9', '#7e22ce');
+  radialLabels(gInner, ALPHA, (inR1 + inR0)/2, 16, '#1a1625');
 
-  // Repère rectangle
-  const markerW = 12, markerH = 24;
+  // Repère rectangulaire + rivet
   const marker = document.createElementNS(svgNS, 'rect');
-  marker.setAttribute('x', String(cx - markerW/2));
-  marker.setAttribute('y', String(cy - outerR - markerH));
-  marker.setAttribute('width', String(markerW));
-  marker.setAttribute('height', String(markerH));
+  marker.setAttribute('x', String(cx - 6));
+  marker.setAttribute('y', String(cy - outerR - 22));
+  marker.setAttribute('width', '12');
+  marker.setAttribute('height', '24');
   marker.setAttribute('fill', '#0b0b0b');
   marker.setAttribute('stroke', '#111');
+  marker.setAttribute('rx', '2');
   gTop.appendChild(marker);
 
-  // Rivet
   const rivet = document.createElementNS(svgNS, 'circle');
   rivet.setAttribute('cx', String(cx));
   rivet.setAttribute('cy', String(cy));
@@ -297,163 +325,336 @@ if (idx === 0) {
   rivet.setAttribute('stroke-width', '2');
   gTop.appendChild(rivet);
 
-  // Rotation indépendante
+  // Rotation indépendantes
   function applyRotation() {
-    const angMid = (offsetMid * 360) / N;
-    const angNum = (offsetNum * 360) / N;
-    gMid.setAttribute('transform', `rotate(${angMid} ${cx} ${cy})`);
-    gNum.setAttribute('transform', `rotate(${angNum} ${cx} ${cy})`);
+    gOuter.setAttribute('transform', `rotate(${(offsetOuter*360)/N} ${cx} ${cy})`);
+    gMid.setAttribute('transform',   `rotate(${(offsetMid*360)/N} ${cx} ${cy})`);
+    gInner.setAttribute('transform', `rotate(${(offsetInner*360)/N} ${cx} ${cy})`);
+    updateHUD();
+    checkAutoSolve();
   }
 
-  function decode(cipher: string): string {
-    let out = '';
-    for (const ch of cipher) {
-      if (/[A-Z]/.test(ch)) {
-        const idxC = ALPHA.indexOf(ch);
-        const idxP = (idxC - offsetMid + N) % N;
-        out += ALPHA[idxP];
-      } else out += ch;
+  // Valeur au repère (en haut) pour un anneau
+  function valueAtTop(items: string[], offset: number): string {
+    const idxTop = (N - (offset % N) + N) % N; // item qui se retrouve en haut après rotation
+    return items[idxTop];
+  }
+
+  // Décryptage d’une lettre avec décalage k
+  function decodeLetter(cipher: string, k: number): string {
+    const i = ALPHA.indexOf(cipher);
+    if (i < 0) return cipher;
+    return ALPHA[(i - k + N) % N];
+  }
+
+  // Refs UI
+  const foundEl  = body.querySelector<HTMLSpanElement>('#found')!;
+  const stepNum  = body.querySelector<HTMLSpanElement>('#stepNum')!;
+  const tSymEl   = body.querySelector<HTMLSpanElement>('#tSym')!;
+  const tNumEl   = body.querySelector<HTMLSpanElement>('#tNum')!;
+  const tLetEl   = body.querySelector<HTMLSpanElement>('#tLet')!;
+  const cSymEl   = body.querySelector<HTMLSpanElement>('#cSym')!;
+  const cNumEl   = body.querySelector<HTMLSpanElement>('#cNum')!;
+  const cLetEl   = body.querySelector<HTMLSpanElement>('#cLet')!;
+  const matchMsg = body.querySelector<HTMLParagraphElement>('#matchMsg')!;
+
+  function refreshTargetsUI() {
+    tSymEl.textContent = SYMBOL_SEQ[stepIndex];
+    tNumEl.textContent = String(SHIFTS[stepIndex]);
+    tLetEl.textContent = CIPHERTEXT[stepIndex];
+    stepNum.textContent = String(stepIndex + 1);
+    foundEl.textContent = (discovered + '____').slice(0, CIPHERTEXT.length);
+    processedForStep = false; // nouvelle étape -> prêt à déclencher
+  }
+
+  function updateHUD() {
+    cSymEl.textContent = valueAtTop(SYMBOLS, offsetOuter);
+    cNumEl.textContent = valueAtTop(NUMS,     offsetMid);
+    cLetEl.textContent = valueAtTop(ALPHA,    offsetInner);
+  }
+
+  function checkAutoSolve() {
+    const okSym = cSymEl.textContent === SYMBOL_SEQ[stepIndex];
+    const okNum = cNumEl.textContent === String(SHIFTS[stepIndex]);
+    const okLet = cLetEl.textContent === CIPHERTEXT[stepIndex];
+
+    if (okSym && okNum && okLet && !processedForStep) {
+      processedForStep = true; // évite multi-déclenchements
+      const plain = decodeLetter(CIPHERTEXT[stepIndex], SHIFTS[stepIndex]);
+      discovered += plain;
+      foundEl.textContent = (discovered + '____').slice(0, CIPHERTEXT.length);
+      matchMsg.innerHTML = `✅ Lettre trouvée : <b>${plain}</b>`;
+      // étape suivante ou fin
+      if (discovered.length === CIPHERTEXT.length) {
+        matchMsg.innerHTML = `✅ Mot trouvé : <b>${discovered}</b>. Chiffre obtenu : ${state.digits[0]}`;
+        state.solved[0] = true;
+        setTimeout(()=>{ render(); (document.getElementById('puzzleModal') as HTMLDialogElement).close(); }, 1000);
+      } else {
+        stepIndex++;
+        refreshTargetsUI();
+      }
+    } else {
+      matchMsg.innerHTML = okSym || okNum || okLet
+        ? '… continue à ajuster, tu y es presque.'
+        : '';
     }
-    return out;
   }
 
-  const plainEl = body.querySelector<HTMLSpanElement>('#plain')!;
-  const manual = body.querySelector<HTMLInputElement>('#manual')!;
-  const msg = body.querySelector<HTMLParagraphElement>('#msg')!;
-
-  function refreshPlain() {
-    const txt = decode(CIPHERTEXT);
-    plainEl.textContent = txt;
-    manual.value = txt;
-  }
-
-  // Boutons médian
-  body.querySelectorAll<HTMLButtonElement>('.rot-mid').forEach(btn=>{
-    btn.addEventListener('click',(e)=>{
-      e.preventDefault();
-      const step = parseInt(btn.dataset.step!,10);
-      offsetMid = (offsetMid + step + N*10) % N;
-      applyRotation(); refreshPlain();
+  // Boutons
+  body.querySelectorAll<HTMLButtonElement>('.rot-out').forEach(b=>{
+    b.addEventListener('click', e=>{ e.preventDefault();
+      const s = parseInt(b.dataset.step!,10);
+      offsetOuter = (offsetOuter + s + N*10) % N; applyRotation();
     });
   });
-
-  // Snap solution
-  body.querySelector<HTMLButtonElement>('#snapMid')!.addEventListener('click',(e)=>{
+  body.querySelectorAll<HTMLButtonElement>('.rot-mid').forEach(b=>{
+    b.addEventListener('click', e=>{ e.preventDefault();
+      const s = parseInt(b.dataset.step!,10);
+      offsetMid = (offsetMid + s + N*10) % N; applyRotation();
+    });
+  });
+  body.querySelectorAll<HTMLButtonElement>('.rot-in').forEach(b=>{
+    b.addEventListener('click', e=>{ e.preventDefault();
+      const s = parseInt(b.dataset.step!,10);
+      offsetInner = (offsetInner + s + N*10) % N; applyRotation();
+    });
+  });
+  body.querySelector<HTMLButtonElement>('#snapIn')!.addEventListener('click', e=>{
     e.preventDefault();
-    offsetMid = OFFSET_SOLUTION;
-    applyRotation(); refreshPlain();
+    offsetInner = (offsetInner + SHIFTS[stepIndex]) % N;
+    applyRotation();
   });
 
-  // Boutons num
-  body.querySelectorAll<HTMLButtonElement>('.rot-num').forEach(btn=>{
-    btn.addEventListener('click',(e)=>{
-      e.preventDefault();
-      const step = parseInt(btn.dataset.step!,10);
-      offsetNum = (offsetNum + step + N*10) % N;
-      applyRotation();
-    });
-  });
+  // Drag ciblé (rotations par zones)
+  (function enableTargetedDrag(){
+    type Target = 'outer'|'mid'|'inner'|null;
+    let dragging=false, target:Target=null, startAngle=0, startOffset=0;
 
-  // Drag → médian
-  (function enableDragRotate(){
-    let dragging=false, startAngle=0, startOffset=0;
-    function ang(ev:MouseEvent){
+    function angle(ev:MouseEvent){
       const r = svg.getBoundingClientRect();
       const x = ev.clientX - (r.left + r.width/2);
-      const y = ev.clientY - (r.top + r.height/2);
+      const y = ev.clientY - (r.top  + r.height/2);
       return Math.atan2(y,x);
     }
     svg.addEventListener('mousedown',(ev)=>{
-      const dx = ev.offsetX - cx, dy = ev.offsetY - cy;
-      const rr = Math.sqrt(dx*dx + dy*dy);
-      if (rr < numR0 || rr > outerR) return;
-      dragging = true; startAngle = ang(ev); startOffset = offsetMid; ev.preventDefault();
+      const rect = svg.getBoundingClientRect();
+      const x = ev.clientX - (rect.left + rect.width/2);
+      const y = ev.clientY - (rect.top  + rect.height/2);
+      const rho = Math.sqrt(x*x + y*y);
+      if (rho >= midR1 && rho <= outerR)      { target = 'outer'; startOffset = offsetOuter; }
+      else if (rho >= midR0 && rho <= midR1)  { target = 'mid';   startOffset = offsetMid; }
+      else if (rho >= inR0  && rho <= inR1)   { target = 'inner'; startOffset = offsetInner; }
+      else return;
+      dragging = true; startAngle = angle(ev); processedForStep = false; ev.preventDefault();
     });
     window.addEventListener('mousemove',(ev)=>{
-      if(!dragging) return;
-      const deltaDeg = ((ang(ev)-startAngle)*180)/Math.PI;
+      if (!dragging || !target) return;
+      const deltaDeg = ((angle(ev)-startAngle)*180)/Math.PI;
       const steps = Math.round((deltaDeg/360)*N);
-      offsetMid = (startOffset + steps + N*10) % N;
-      applyRotation(); refreshPlain();
+      if (target==='outer') offsetOuter = (startOffset + steps + N*10) % N;
+      if (target==='mid')   offsetMid   = (startOffset + steps + N*10) % N;
+      if (target==='inner') offsetInner = (startOffset + steps + N*10) % N;
+      applyRotation();
     });
-    window.addEventListener('mouseup',()=>dragging=false);
+    window.addEventListener('mouseup',()=>{ dragging=false; target=null; });
   })();
 
-  // Validation
-  body.querySelector<HTMLButtonElement>('#validate')!.addEventListener('click',(e)=>{
-    e.preventDefault();
-    const val = (manual.value||'').trim().toUpperCase();
-    if (val === 'AIDE') {
-      msg.innerHTML = `✅ Correct. Chiffre obtenu : ${state.digits[0]}`;
-      state.solved[0] = true;
-      setTimeout(()=>{ render(); modal.close(); }, 900);
-    } else {
-      msg.innerHTML = `<span class="warn">❌ Mauvais mot. Ajuste l'anneau médian.</span>`;
-    }
-  });
-
+  // Init
+  function buildRings() {
+    gOuter.innerHTML = ''; gMid.innerHTML = ''; gInner.innerHTML = '';
+    ring(gOuter, outerR, midR1, '#e7e5e4', '#9ca3af');   radialLabels(gOuter, SYMBOLS, (outerR + midR1)/2, 18, '#111');
+    ring(gMid,   midR1, midR0, '#eab676', '#b45309');   radialLabels(gMid,   NUMS,    (midR1 + midR0)/2, 14, '#1a1207');
+    ring(gInner, inR1,  inR0,  '#c7a0c9', '#7e22ce');   radialLabels(gInner, ALPHA,   (inR1  + inR0)/2,  16, '#1a1625');
+  }
+  buildRings();
+  refreshTargetsUI();
   applyRotation();
-  refreshPlain();
+
   (document.getElementById('puzzleModal') as HTMLDialogElement).showModal();
 }
 
 
       // ===== P1 — LABYRINTHE DES PENSÉES — Chiffre 8 =====
       if (idx === 1) {
-        title.textContent = 'Énigme #2 — Labyrinthe des pensées';
-        const grid: number[][] = [
-          [2,0,1,0,0],
-          [1,0,1,0,1],
-          [0,0,0,0,1],
-          [1,1,0,1,0],
-          [0,0,0,1,3],
-        ];
-        let pos = { r:0, c:0 };
-        body.innerHTML = `
-          <p>Aide Lina à atteindre la zone d’écoute (🟩) en évitant les pensées bloquantes (⬛).</p>
-          <div id="maze" style="display:grid; grid-template-columns:repeat(5,42px); gap:4px; margin:.5rem 0;"></div>
-          <div style="display:flex; gap:.25rem; flex-wrap:wrap;">
-            <button class="mv" data-dir="up">↑</button>
-            <button class="mv" data-dir="left">←</button>
-            <button class="mv" data-dir="down">↓</button>
-            <button class="mv" data-dir="right">→</button>
-          </div>
-          <p id="msg" style="margin-top:.5rem;"></p>
-        `;
-        const maze = body.querySelector<HTMLDivElement>('#maze')!;
-        const msg = body.querySelector<HTMLParagraphElement>('#msg')!;
-        function draw() {
-          maze.innerHTML = '';
-          for (let r = 0; r < grid.length; r++) for (let c = 0; c < grid[0].length; c++) {
-            const cell = document.createElement('div');
-            cell.style.width='42px'; cell.style.height='42px'; cell.style.display='flex';
-            cell.style.alignItems='center'; cell.style.justifyContent='center';
-            cell.style.fontSize='20px'; cell.style.border='1px solid #333';
-            const val = grid[r][c];
-            if (r === pos.r && c === pos.c) { cell.textContent='🟦'; cell.style.background='#1e3a8a'; }
-            else if (val === 1) { cell.textContent='⬛'; cell.style.background='#222'; }
-            else if (val === 3) { cell.textContent='🟩'; cell.style.background='#14532d'; }
-            else cell.style.background='#111';
-            maze.appendChild(cell);
-          }
-        }
-        function move(dr:number, dc:number) {
-          const nr = pos.r + dr, nc = pos.c + dc;
-          if (nr<0||nc<0||nr>=grid.length||nc>=grid[0].length) return;
-          if (grid[nr][nc]===1) { msg.textContent='⚠️ Pensée bloquante. Cherche une autre voie.'; return; }
-          pos = { r:nr, c:nc }; msg.textContent='';
-          if (grid[nr][nc]===3) { msg.textContent=`✅ Zone d’écoute trouvée. Chiffre obtenu : ${state.digits[1]}`; state.solved[1]=true; setTimeout(()=>{ render(); modal.close(); },800); }
-          draw();
-        }
-        draw();
-        body.querySelectorAll<HTMLButtonElement>('.mv').forEach(b => b.addEventListener('click', (e)=>{ e.preventDefault(); const d=b.dataset.dir!; if(d==='up')move(-1,0); if(d==='down')move(1,0); if(d==='left')move(0,-1); if(d==='right')move(0,1); }));
-        (document.getElementById('puzzleModal') as HTMLDialogElement).addEventListener('keydown', (ev) => {
-          if (ev.key==='ArrowUp'){ev.preventDefault(); move(-1,0);} if (ev.key==='ArrowDown'){ev.preventDefault(); move(1,0);}
-          if (ev.key==='ArrowLeft'){ev.preventDefault(); move(0,-1);} if (ev.key==='ArrowRight'){ev.preventDefault(); move(0,1);}
-        });
-        (document.getElementById('puzzleModal') as HTMLDialogElement).showModal();
-        return;
-      }
+  title.textContent = 'Énigme #2 — Labyrinthe des pensées';
+
+  // 5 labyrinthes successifs -> mot PARLE
+  type Round = { grid: number[][], letter: string };
+  const rounds: Round[] = [
+    { // L1 -> P
+      grid: [
+        [2,0,1,0,0],
+        [1,0,1,0,1],
+        [0,0,0,0,1],
+        [1,1,0,0,0],
+        [0,0,0,1,3],
+      ],
+      letter: 'P',
+    },
+    { // L2 -> A
+      grid: [
+        [2,1,0,0,0],
+        [0,1,0,1,0],
+        [0,0,0,1,0],
+        [1,1,0,1,0],
+        [3,0,0,0,0],
+      ],
+      letter: 'A',
+    },
+    { // L3 -> R
+      grid: [
+        [2,0,0,1,0],
+        [1,1,0,1,0],
+        [0,0,0,0,0],
+        [0,1,1,1,0],
+        [0,0,0,3,0],
+      ],
+      letter: 'R',
+    },
+    { // L4 -> L
+      grid: [
+        [2,0,1,0,0],
+        [0,0,1,0,1],
+        [1,0,0,0,1],
+        [1,1,1,0,0],
+        [0,0,0,1,3], // objectif en (4,4)
+      ],
+      letter: 'L',
+    },
+    { // L5 -> E
+      grid: [
+        [2,0,0,0,1],
+        [1,1,1,0,1],
+        [0,0,0,0,1],
+        [0,1,1,0,0],
+        [3,0,0,0,0],
+      ],
+      letter: 'E',
+    },
+  ];
+
+  // Avancement
+  let roundIdx = 0;
+  let grid: number[][] = rounds[roundIdx].grid;
+  let found = ''; // lettres trouvées
+  let pos = { r: 0, c: 0 };
+
+  // Recherche start (2)
+  function findStart(g: number[][]) {
+    for (let r = 0; r < g.length; r++) for (let c = 0; c < g[0].length; c++) {
+      if (g[r][c] === 2) return { r, c };
+    }
+    return { r: 0, c: 0 };
+  }
+
+  body.innerHTML = `
+    <p>Aide Lina à traverser ses pensées et à <b>PARLER</b> : chaque sortie de labyrinthe te donne une lettre.</p>
+    <div class="box" style="padding:.5rem .75rem; border:1px solid #333; background:#0f1012; border-radius:8px; display:inline-block;">
+      Mot : <span id="progress" style="letter-spacing:.2rem; font-weight:700;">_ _ _ _ _</span>
+      <span style="margin-left:.75rem; opacity:.8;">(1/5)</span>
+    </div>
+
+    <div id="maze" style="display:grid; grid-template-columns:repeat(5,42px); gap:4px; margin:.75rem 0;"></div>
+
+    <div style="display:flex; gap:.25rem; flex-wrap:wrap;">
+      <button class="mv" data-dir="up">↑</button>
+      <button class="mv" data-dir="left">←</button>
+      <button class="mv" data-dir="down">↓</button>
+      <button class="mv" data-dir="right">→</button>
+    </div>
+    <p id="msg" style="margin-top:.5rem;"></p>
+  `;
+
+  const maze = body.querySelector<HTMLDivElement>('#maze')!;
+  const msg = body.querySelector<HTMLParagraphElement>('#msg')!;
+  const progressEl = body.querySelector<HTMLSpanElement>('#progress')!;
+  const modalEl = document.getElementById('puzzleModal') as HTMLDialogElement;
+
+  function draw() {
+    maze.innerHTML = '';
+    for (let r = 0; r < grid.length; r++) for (let c = 0; c < grid[0].length; c++) {
+      const cell = document.createElement('div');
+      cell.style.width='42px'; cell.style.height='42px'; cell.style.display='flex';
+      cell.style.alignItems='center'; cell.style.justifyContent='center';
+      cell.style.fontSize='20px'; cell.style.border='1px solid #333';
+      const val = grid[r][c];
+      if (r === pos.r && c === pos.c) { cell.textContent='🟦'; cell.style.background='#1e3a8a'; }
+      else if (val === 1) { cell.textContent='⬛'; cell.style.background='#222'; }
+      else if (val === 3) { cell.textContent='🟩'; cell.style.background='#14532d'; }
+      else if (val === 2) { cell.textContent='🟨'; cell.style.background='#7c5807'; }
+      else cell.style.background='#111';
+      maze.appendChild(cell);
+    }
+  }
+
+  function updateProgressUI() {
+    const slots = ['_','_','_','_','_'];
+    for (let i = 0; i < found.length; i++) slots[i] = found[i];
+    progressEl.textContent = slots.join(' ');
+    (progressEl.nextElementSibling as HTMLElement).textContent = ` (${Math.min(found.length+1, 5)}/5)`;
+  }
+
+  function loadRound(i: number) {
+    roundIdx = i;
+    grid = rounds[roundIdx].grid;
+    pos = findStart(grid);
+    msg.textContent = `Labyrinthe ${roundIdx+1}/5 : trouve la sortie 🟩.`;
+    draw();
+    updateProgressUI();
+  }
+
+  function nextRoundOrFinish() {
+    // Ajoute la lettre de ce labyrinthe
+    const letter = rounds[roundIdx].letter;
+    found += letter;
+    updateProgressUI();
+
+    if (found.length === rounds.length) {
+      // Mot complet
+      msg.textContent = `✅ Mot trouvé : ${found}. Chiffre obtenu : ${state.digits[1]}`;
+      state.solved[1] = true;
+      setTimeout(()=>{ render(); modalEl.close(); }, 900);
+      return;
+    }
+    // Passe au prochain
+    msg.textContent = `✅ Lettre “${letter}” trouvée. Continue !`;
+    setTimeout(()=> loadRound(roundIdx + 1), 600);
+  }
+
+  function move(dr:number, dc:number) {
+    const nr = pos.r + dr, nc = pos.c + dc;
+    if (nr<0||nc<0||nr>=grid.length||nc>=grid[0].length) return;
+    if (grid[nr][nc]===1) { msg.textContent='⚠️ Pensée bloquante. Cherche une autre voie.'; return; }
+    pos = { r:nr, c:nc }; msg.textContent = '';
+    draw();
+    if (grid[nr][nc]===3) nextRoundOrFinish();
+  }
+
+  // Bind UI
+  body.querySelectorAll<HTMLButtonElement>('.mv').forEach(b =>
+    b.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const d=b.dataset.dir!;
+      if(d==='up')move(-1,0);
+      if(d==='down')move(1,0);
+      if(d==='left')move(0,-1);
+      if(d==='right')move(0,1);
+    })
+  );
+
+  modalEl.addEventListener('keydown', (ev) => {
+    if (ev.key==='ArrowUp'){ev.preventDefault(); move(-1,0);}
+    if (ev.key==='ArrowDown'){ev.preventDefault(); move(1,0);}
+    if (ev.key==='ArrowLeft'){ev.preventDefault(); move(0,-1);}
+    if (ev.key==='ArrowRight'){ev.preventDefault(); move(0,1);}
+  });
+
+  // Start
+  loadRound(0);
+  modalEl.showModal();
+  return;
+}
+
 
       // ===== P2 — MOT DE PASSE ÉMOTIONNEL — Chiffre 6 =====
       if (idx === 2) {
