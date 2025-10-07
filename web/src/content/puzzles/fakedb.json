@@ -1,0 +1,8 @@
+{
+  "patients": [
+    {"id":"P-001","name":"DURAND Alice","dob":"1990-04-12","code":"74"},
+    {"id":"P-002","name":"MARTIN Hugo","dob":"1986-11-03","code":"20"},
+    {"id":"P-003","name":"NGUYEN Lina","dob":"1999-08-27","code":"13"}
+  ],
+  "hint":"Concaténer les codes triés par date de naissance."
+}
