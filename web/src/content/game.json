@@ -1,0 +1,11 @@
+{
+  "title": "Cyberattaque à l'hôpital",
+  "durationSec": 2700,
+  "finalCode": "742013",
+  "penalties": { "hint": 60, "skip": 180 },
+  "puzzles": [
+    { "id": "PatientFileCipher", "data": "content/puzzles/patient1.json" },
+    { "id": "PasswordValidator", "data": "content/puzzles/passwords.json" },
+    { "id": "FakeDBQuery", "data": "content/puzzles/fakedb.json" }
+  ]
+}

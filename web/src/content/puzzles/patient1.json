@@ -1,0 +1,6 @@
+{
+  "cipher": "caesar",
+  "shift": 3,
+  "text": "Grq qdlv gh qdlv, qp#1234",
+  "hint": "Chiffrement César (+3)."
+}
