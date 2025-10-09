@@ -163,17 +163,153 @@ const state = {
 function render() {
   ensureTheme();
 
-  if (state.view === 'home') {
-    appEl.innerHTML = `
-      <main style="padding:3rem 2rem; max-width:900px; margin:0 auto;">
-        <h1>Escape Game Santé – Cyberattaque à l'hôpital</h1>
-        <p>Vous avez 45 minutes pour restaurer le système avant l’arrêt complet des services.</p>
-        <button id="start" style="padding:.75rem 1rem;">Démarrer</button>
-      </main>
-    `;
-    document.getElementById('start')!.addEventListener('click', () => { state.view = 'ransom'; render(); });
-    return;
+ if (state.view === 'home') {
+  appEl.innerHTML = `
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
+
+      .home-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: radial-gradient(circle at 20% 20%, #111827 0%, #000 100%);
+        color: #e5e7eb;
+        font-family: 'Orbitron', sans-serif;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .home-header {
+        display: flex;
+        align-items: center;
+        padding: 1rem 2rem;
+      }
+
+      .home-logo {
+        height: 48px;
+        width: auto;
+      }
+
+      .home-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        text-align: center;
+        padding: 2rem;
+        max-width: 800px;
+        margin: 2rem auto 0;
+      }
+
+      .content-box {
+        background: rgba(17, 24, 39, 0.6);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 0 25px rgba(0,0,0,0.4);
+      }
+
+      .home-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 0;
+        background: linear-gradient(90deg,#3b82f6,#60a5fa,#3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-size: 200%;
+        animation: shine 5s linear infinite;
+      }
+
+      @keyframes shine {
+        0% { background-position: 0% }
+        100% { background-position: 200% }
+      }
+
+      .home-intro {
+        text-align: center;
+        max-width: 800px;
+        margin: 2rem auto 0;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        min-height: 100px;
+        white-space: pre-line;
+      }
+
+      .start-button {
+        position: absolute;
+        bottom: 2rem;
+        right: 2rem;
+        padding: 1rem 2rem;
+        background: #1e40af;
+        border: none;
+        color: #fff;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 0 15px rgba(59,130,246,0.6);
+        transition: transform .2s ease, box-shadow .2s ease;
+      }
+
+      .start-button:hover {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 0 25px rgba(59,130,246,0.8);
+      }
+    </style>
+
+    <div class="home-container">
+      <header class="home-header">
+        <img src="/assets/Workshop-epsi.png" alt="Logo" class="home-logo" />
+      </header>
+
+      <div class="home-content">
+        <div class="content-box">
+          <h1 class="home-title">Escape Game Santé – Cyberattaque à l'hôpital</h1>
+        </div>
+      </div>
+
+      <div id="intro" class="home-intro"></div>
+
+      <button id="start" class="start-button">Démarrer ▶</button>
+    </div>
+  `;
+
+  // --- Texte typewriter en bas ---
+  const introText = `⚠️ SYSTÈME BLOQUÉ ⚠️  
+Centre Hospitalier — Accès restreint
+
+Toutes les données ont été chiffrées.  
+Le code d’accès a été divisé en 4 fragments.  
+Résolvez les énigmes pour restaurer le système.
+
+Quelqu’un cherche à se faire entendre…  
+Mais personne ne l’écoute vraiment.`;
+
+  const introEl = document.getElementById('intro')!;
+  let i = 0;
+  const speed = 25;
+
+  function typeWriter() {
+    if (i < introText.length) {
+      introEl.textContent += introText.charAt(i);
+      i++;
+      setTimeout(typeWriter, speed);
+    }
   }
+  typeWriter();
+
+  // --- Bouton ---
+  document.getElementById('start')!.addEventListener('click', () => {
+    state.view = 'ransom';
+    render();
+  });
+
+  return;
+}
+
 
   if (state.view === 'ransom') {
     appEl.innerHTML = `
@@ -182,7 +318,7 @@ function render() {
           <h2 style="margin-top:0;">Énigmes — Santé mentale (jeunes)</h2>
           <ol style="padding-left:1rem;">
             <li style="margin:.25rem 0;">
-              <button class="open-puzzle" data-id="0" style="width:100%">${state.solved[0] ? '✅' : '🧩'} #1 Disque chiffrant (3 niveaux)</button>
+              <button class="open-puzzle" data-id="0" style="width:100%">${state.solved[0] ? '✅' : '🧩'} #1 Disque chiffrant</button>
             </li>
             <li style="margin:.25rem 0;">
               <button class="open-puzzle" data-id="1" style="width:100%">${state.solved[1] ? '✅' : '🧩'} #2 Labyrinthe des pensées</button>
@@ -261,7 +397,7 @@ function render() {
 
       /***** ===== P0 — DISQUE CHIFFRANT (alignement auto) — Chiffre 4 ===== *****/
       if (idx === 0) {
-        title.textContent = 'Énigme #1 — Disque chiffrant (alignement automatique)';
+        title.textContent = 'Énigme #1 — Disque chiffrant';
 
         const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''); const N = ALPHA.length;
         const CIPHERTEXT = 'HPKL';     // → clair "AIDE" si décalage +7
@@ -316,28 +452,7 @@ function render() {
                 <p id="matchMsg" style="margin:.5rem 0 0;"></p>
               </div>
 
-              <div class="box" style="margin-top:.5rem; padding:.6rem .8rem;">
-                <div><strong>Contrôles (drag direct sur chaque couronne)</strong></div>
-                <div class="bar"><span style="min-width:160px;">Symbole (extérieur)</span>
-                  <button class="btn rot-out" data-step="-5">⟲ −5</button>
-                  <button class="btn rot-out" data-step="-1">⟲ −1</button>
-                  <button class="btn rot-out" data-step="+1">⟲ +1</button>
-                  <button class="btn rot-out" data-step="+5">⟲ +5</button>
-                </div>
-                <div class="bar"><span style="min-width:160px;">Chiffre (médian)</span>
-                  <button class="btn rot-mid" data-step="-5">⟲ −5</button>
-                  <button class="btn rot-mid" data-step="-1">⟲ −1</button>
-                  <button class="btn rot-mid" data-step="+1">⟲ +1</button>
-                  <button class="btn rot-mid" data-step="+5">⟲ +5</button>
-                </div>
-                <div class="bar"><span style="min-width:160px;">Lettre (intérieur)</span>
-                  <button class="btn rot-in" data-step="-5">⟲ −5</button>
-                  <button class="btn rot-in" data-step="-1">⟲ −1</button>
-                  <button class="btn rot-in" data-step="+1">⟲ +1</button>
-                  <button class="btn rot-in" data-step="+5">⟲ +5</button>
-                  <button id="snapIn" class="btn">Astuce +7</button>
-                </div>
-              </div>
+             
             </div>
           </div>
         `;
@@ -510,11 +625,11 @@ function render() {
             offsetInner = (offsetInner + s + N*10) % N; applyRotation();
           });
         });
-        body.querySelector<HTMLButtonElement>('#snapIn')!.addEventListener('click', e=>{
-          e.preventDefault();
-          offsetInner = (offsetInner + SHIFTS[stepIndex]) % N;
-          applyRotation();
-        });
+        // body.querySelector<HTMLButtonElement>('#snapIn')!.addEventListener('click', e=>{
+        //   e.preventDefault();
+        //   offsetInner = (offsetInner + SHIFTS[stepIndex]) % N;
+        //   applyRotation();
+        // });
 
         // Drag ciblé
         (function enableTargetedDrag(){
@@ -567,171 +682,304 @@ function render() {
 
       /***** ===== P1 — LABYRINTHE DES PENSÉES — Chiffre 8 ===== *****/
       if (idx === 1) {
-        title.textContent = 'Énigme #2 — Labyrinthe des pensées';
+  title.textContent = 'Énigme #2 — Labyrinthe des pensées';
 
-        type Round = { grid: number[][], letter: string };
-        const rounds: Round[] = [
-          { // L1 -> P (corrigé)
-            grid: [
-              [2,0,1,0,0],
-              [1,0,1,0,1],
-              [0,0,0,0,1],
-              [1,1,0,0,0],
-              [0,0,0,1,3],
-            ], letter: 'P',
-          },
-          { // L2 -> A
-            grid: [
-              [2,1,0,0,0],
-              [0,1,0,1,0],
-              [0,0,0,1,0],
-              [1,1,0,1,0],
-              [3,0,0,0,0],
-            ], letter: 'A',
-          },
-          { // L3 -> R
-            grid: [
-              [2,0,0,1,0],
-              [1,1,0,1,0],
-              [0,0,0,0,0],
-              [0,1,1,1,0],
-              [0,0,0,3,0],
-            ], letter: 'R',
-          },
-          { // L4 -> L
-            grid: [
-              [2,0,1,0,0],
-              [0,0,1,0,1],
-              [1,0,0,0,1],
-              [1,1,1,0,0],
-              [0,0,0,1,3],
-            ], letter: 'L',
-          },
-          { // L5 -> E
-            grid: [
-              [2,0,0,0,1],
-              [1,1,1,0,1],
-              [0,0,0,0,1],
-              [0,1,1,0,0],
-              [3,0,0,0,0],
-            ], letter: 'E',
-          },
-        ];
+  type Round = { grid: number[][], letter: string };
 
-        let roundIdx = 0;
-        let grid: number[][] = rounds[roundIdx].grid;
-        let found = '';
-        let pos = { r: 0, c: 0 };
+  // Légende: 0=vide, 1=mur, 2=départ, 3=sortie
+  const rounds: Round[] = [
+    { // P
+      grid: [
+        [2,0,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,0,0,0,1],
+        [1,1,1,1,1,1,1,1,0,1],
+        [1,0,0,0,0,0,0,1,0,1],
+        [1,0,1,1,1,1,0,1,0,1],
+        [1,0,1,0,0,1,0,1,0,1],
+        [1,0,1,0,1,1,0,1,0,1],
+        [1,0,1,0,0,0,0,1,0,1],
+        [1,0,1,1,1,1,1,1,0,1],
+        [1,0,0,0,0,0,0,0,0,3],
+      ], letter: 'P',
+    },
+    { // A
+      grid: [
+        [2,0,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,0,0,1,1],
+        [1,1,1,1,1,1,1,0,1,1],
+        [1,0,0,0,0,0,1,0,0,1],
+        [1,0,1,1,1,0,1,1,0,1],
+        [1,0,1,0,0,0,0,1,0,1],
+        [1,0,1,0,1,1,0,1,0,1],
+        [1,0,0,0,0,1,0,1,0,1],
+        [1,1,1,1,0,0,0,1,0,1],
+        [1,1,1,1,1,1,0,0,0,3],
+      ], letter: 'A',
+    },
+    { // R
+      grid: [
+        [2,0,0,0,1,1,1,1,1,1],
+        [1,1,1,0,1,0,0,0,0,1],
+        [1,0,0,0,1,0,1,1,0,1],
+        [1,0,1,1,1,0,1,0,0,1],
+        [1,0,1,0,0,0,1,0,1,1],
+        [1,0,1,0,1,1,1,0,1,1],
+        [1,0,0,0,0,0,0,0,1,1],
+        [1,1,1,1,1,1,1,0,1,1],
+        [1,0,0,0,0,0,1,0,0,0],
+        [1,1,1,1,1,0,1,1,1,3],
+      ], letter: 'R',
+    },
+    { // L
+      grid: [
+        [2,0,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,0,1,1,1],
+        [1,1,1,1,1,1,0,1,1,1],
+        [1,0,0,0,0,1,0,0,0,1],
+        [1,0,1,1,0,1,1,1,0,1],
+        [1,0,1,0,0,0,0,1,0,1],
+        [1,0,1,0,1,1,0,1,0,1],
+        [1,0,0,0,0,1,0,1,0,1],
+        [1,1,1,1,0,0,0,1,0,1],
+        [1,1,1,1,1,1,0,0,0,3],
+      ], letter: 'L',
+    },
+   { // E (corrigé : chemin existe)
+  grid: [
+    //  →→→→→→→→→ puis ↓↓↓↓↓↓↓↓↓ jusqu'à (9,9)
+    [2,0,0,0,0,0,0,0,0,0],
+    [1,1,1,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1,1,0],
+    [1,1,1,1,1,1,1,1,1,3],
+  ],
+  letter: 'E',
+},
 
-        function findStart(g: number[][]) {
-          for (let r = 0; r < g.length; r++) for (let c = 0; c < g[0].length; c++) {
-            if (g[r][c] === 2) return { r, c };
-          }
-          return { r: 0, c: 0 };
-        }
+  ];
 
-        body.innerHTML = `
-          <p>Aide Lina à traverser ses pensées et à <b>PARLER</b> : chaque sortie te donne une lettre.</p>
-          <div class="box" style="padding:.5rem .75rem; display:inline-block;">
-            Mot : <span id="progress" style="letter-spacing:.2rem; font-weight:700;">_ _ _ _ _</span>
-            <span style="margin-left:.75rem; opacity:.8;">(1/5)</span>
-          </div>
+  let roundIdx = 0;
+  let grid: number[][] = rounds[roundIdx].grid;
+  let found = '';
+  let pos = { r: 0, c: 0 };
+  let stepsThisRound = 0;
+  let shortestLen = 0;
+  let distToExit: number[][] = [];
 
-          <div id="maze" style="display:grid; grid-template-columns:repeat(5,42px); gap:4px; margin:.75rem 0;"></div>
+  function findStart(g: number[][]) {
+    for (let r = 0; r < g.length; r++) for (let c = 0; c < g[0].length; c++) {
+      if (g[r][c] === 2) return { r, c };
+    }
+    return { r: 0, c: 0 };
+  }
+  function findExit(g: number[][]) {
+    for (let r = 0; r < g.length; r++) for (let c = 0; c < g[0].length; c++) {
+      if (g[r][c] === 3) return { r, c };
+    }
+    return { r: g.length - 1, c: g[0].length - 1 };
+  }
 
-          <div style="display:flex; gap:.25rem; flex-wrap:wrap;">
-            <button class="mv" data-dir="up">↑</button>
-            <button class="mv" data-dir="left">←</button>
-            <button class="mv" data-dir="down">↓</button>
-            <button class="mv" data-dir="right">→</button>
-          </div>
-          <p id="msg" style="margin-top:.5rem;"></p>
-        `;
-
-        const maze = body.querySelector<HTMLDivElement>('#maze')!;
-        const msg = body.querySelector<HTMLParagraphElement>('#msg')!;
-        const progressEl = body.querySelector<HTMLSpanElement>('#progress')!;
-        const modalEl = document.getElementById('puzzleModal') as HTMLDialogElement;
-
-        function draw() {
-          maze.innerHTML = '';
-          for (let r = 0; r < grid.length; r++) for (let c = 0; c < grid[0].length; c++) {
-            const cell = document.createElement('div');
-            cell.style.width='42px'; cell.style.height='42px'; cell.style.display='flex';
-            cell.style.alignItems='center'; cell.style.justifyContent='center';
-            cell.style.fontSize='20px'; cell.style.border='1px solid #333';
-            const val = grid[r][c];
-            if (r === pos.r && c === pos.c) { cell.textContent='🟦'; cell.style.background='#1e3a8a'; }
-            else if (val === 1) { cell.textContent='⬛'; cell.style.background='#222'; }
-            else if (val === 3) { cell.textContent='🟩'; cell.style.background='#14532d'; }
-            else if (val === 2) { cell.textContent='🟨'; cell.style.background='#7c5807'; }
-            else cell.style.background='#111';
-            maze.appendChild(cell);
-          }
-        }
-
-        function updateProgressUI() {
-          const slots = ['_','_','_','_','_'];
-          for (let i = 0; i < found.length; i++) slots[i] = found[i];
-          progressEl.textContent = slots.join(' ');
-          (progressEl.nextElementSibling as HTMLElement).textContent = ` (${Math.min(found.length+1, 5)}/5)`;
-        }
-
-        function loadRound(i: number) {
-          roundIdx = i;
-          grid = rounds[roundIdx].grid;
-          pos = findStart(grid);
-          msg.textContent = `Labyrinthe ${roundIdx+1}/5 : trouve la sortie 🟩.`;
-          draw();
-          updateProgressUI();
-        }
-
-        function nextRoundOrFinish() {
-          const letter = rounds[roundIdx].letter;
-          found += letter;
-          updateProgressUI();
-
-          if (found.length === rounds.length) {
-            msg.textContent = `✅ Mot trouvé : ${found}. Chiffre obtenu : ${state.digits[1]}`;
-            state.solved[1] = true;
-            setTimeout(()=>{ render(); modalEl.close(); }, 900);
-            return;
-          }
-          msg.textContent = `✅ Lettre “${letter}” trouvée. Continue !`;
-          setTimeout(()=> loadRound(roundIdx + 1), 600);
-        }
-
-        function move(dr:number, dc:number) {
-          const nr = pos.r + dr, nc = pos.c + dc;
-          if (nr<0||nc<0||nr>=grid.length||nc>=grid[0].length) return;
-          if (grid[nr][nc]===1) { msg.textContent='⚠️ Pensée bloquante. Cherche une autre voie.'; return; }
-          pos = { r:nr, c:nc }; msg.textContent = '';
-          draw();
-          if (grid[nr][nc]===3) nextRoundOrFinish();
-        }
-
-        body.querySelectorAll<HTMLButtonElement>('.mv').forEach(b =>
-          b.addEventListener('click', (e)=>{
-            e.preventDefault();
-            const d=b.dataset.dir!;
-            if(d==='up')move(-1,0);
-            if(d==='down')move(1,0);
-            if(d==='left')move(0,-1);
-            if(d==='right')move(0,1);
-          })
-        );
-
-        modalEl.addEventListener('keydown', (ev) => {
-          if (ev.key==='ArrowUp'){ev.preventDefault(); move(-1,0);}
-          if (ev.key==='ArrowDown'){ev.preventDefault(); move(1,0);}
-          if (ev.key==='ArrowLeft'){ev.preventDefault(); move(0,-1);}
-          if (ev.key==='ArrowRight'){ev.preventDefault(); move(0,1);}
-        });
-
-        loadRound(0);
-        modal.showModal();
-        return;
+  // Longueur d’un plus court chemin (BFS)
+  function shortestPathLen(g: number[][]) {
+    const start = findStart(g), goal = findExit(g);
+    const R = g.length, C = g[0].length;
+    const q: Array<[number,number,number]> = [[start.r, start.c, 0]];
+    const seen = new Set<string>([`${start.r},${start.c}`]);
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    while (q.length) {
+      const [r,c,d] = q.shift()!;
+      if (r === goal.r && c === goal.c) return d;
+      for (const [dr,dc] of dirs) {
+        const nr=r+dr, nc=c+dc;
+        if (nr<0||nc<0||nr>=R||nc>=C) continue;
+        if (g[nr][nc]===1) continue;
+        const k = `${nr},${nc}`;
+        if (!seen.has(k)) { seen.add(k); q.push([nr,nc,d+1]); }
       }
+    }
+    return Infinity;
+  }
+
+  // Carte des distances jusqu’à la sortie (BFS inversé)
+  function computeDistMap(g: number[][]): number[][] {
+    const R = g.length, C = g[0].length;
+    const goal = findExit(g);
+    const dist = Array.from({length:R},()=>Array(C).fill(Infinity));
+    const q: Array<[number,number]> = [[goal.r, goal.c]];
+    dist[goal.r][goal.c] = 0;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    while (q.length) {
+      const [r,c] = q.shift()!;
+      for (const [dr,dc] of dirs) {
+        const nr=r+dr, nc=c+dc;
+        if (nr<0||nc<0||nr>=R||nc>=C) continue;
+        if (g[nr][nc]===1) continue;
+        if (dist[nr][nc] > dist[r][c] + 1) {
+          dist[nr][nc] = dist[r][c] + 1;
+          q.push([nr,nc]);
+        }
+      }
+    }
+    return dist;
+  }
+
+  body.innerHTML = `
+    <p>Aide Lina à <b>PARLER</b> : la lettre n’est gagnée que si tu suis <u>strictement</u> un plus court chemin. Tout écart réinitialise le round.</p>
+    <div class="box" style="padding:.5rem .75rem; display:inline-block;">
+      Mot : <span id="progress" style="letter-spacing:.2rem; font-weight:700;">_ _ _ _ _</span>
+      <span id="roundInfo" style="margin-left:.75rem; opacity:.8;">(1/5)</span>
+    </div>
+    <div style="margin:.25rem 0; font-size:.9rem; opacity:.9;">
+      Distance jusqu’à la sortie : <span id="stepsLeft">—</span>
+    </div>
+
+    <div id="maze" style="display:grid; gap:4px; margin:.5rem 0;"></div>
+
+    <div style="display:flex; gap:.25rem; flex-wrap:wrap;">
+      <button class="mv" data-dir="up">↑</button>
+      <button class="mv" data-dir="left">←</button>
+      <button class="mv" data-dir="down">↓</button>
+      <button class="mv" data-dir="right">→</button>
+    </div>
+    <p id="msg" style="margin-top:.5rem;"></p>
+  `;
+
+  const maze = body.querySelector<HTMLDivElement>('#maze')!;
+  const msg = body.querySelector<HTMLParagraphElement>('#msg')!;
+  const progressEl = body.querySelector<HTMLSpanElement>('#progress')!;
+  const roundInfo = body.querySelector<HTMLSpanElement>('#roundInfo')!;
+  const stepsLeftEl = body.querySelector<HTMLSpanElement>('#stepsLeft')!;
+  const modalEl = document.getElementById('puzzleModal') as HTMLDialogElement;
+
+  function draw() {
+    maze.innerHTML = '';
+    const size = 30; // px
+    maze.style.gridTemplateColumns = `repeat(${grid[0].length}, ${size}px)`;
+    for (let r = 0; r < grid.length; r++) for (let c = 0; c < grid[0].length; c++) {
+      const cell = document.createElement('div');
+      cell.style.width=`${size}px`; cell.style.height=`${size}px`; cell.style.display='flex';
+      cell.style.alignItems='center'; cell.style.justifyContent='center';
+      cell.style.fontSize='16px'; cell.style.border='1px solid #333';
+      const val = grid[r][c];
+      if (r === pos.r && c === pos.c) { cell.textContent='🟦'; cell.style.background='#1e3a8a'; }
+      else if (val === 1) { cell.textContent=''; cell.style.background='#202020'; }
+      else if (val === 3) { cell.textContent=''; cell.style.background='#14532d'; }
+      else if (val === 2) { cell.textContent=''; cell.style.background='#7c5807'; }
+      else cell.style.background='#0d0d0d';
+      maze.appendChild(cell);
+    }
+  }
+
+  function updateProgressUI() {
+    const slots = ['_','_','_','_','_'];
+    for (let i = 0; i < found.length; i++) slots[i] = found[i];
+    progressEl.textContent = slots.join(' ');
+    roundInfo.textContent = ` (${Math.min(found.length+1, 5)}/5)`;
+  }
+
+  // Affiche la distance exacte restante (carte BFS inversée)
+  function updateStepsLeftUI() {
+    const d = distToExit[pos.r][pos.c];
+    stepsLeftEl.textContent = isFinite(d) ? String(d) : '—';
+  }
+
+  function loadRound(i: number) {
+    roundIdx = i;
+    grid = rounds[roundIdx].grid;
+    pos = findStart(grid);
+    stepsThisRound = 0;
+    shortestLen = shortestPathLen(grid);
+    distToExit = computeDistMap(grid);
+
+    if (!isFinite(shortestLen) || !isFinite(distToExit[pos.r][pos.c])) {
+      msg.textContent = '❌ Labyrinthe sans issue. Corrige la grille.';
+    } else {
+      msg.textContent = `Labyrinthe ${roundIdx+1}/5 : atteins 🟩 en ${shortestLen} pas (chemin optimal uniquement).`;
+    }
+    draw();
+    updateProgressUI();
+    updateStepsLeftUI();
+  }
+
+  function nextRoundOrFinish() {
+    const letter = rounds[roundIdx].letter;
+    found += letter;
+    updateProgressUI();
+
+    if (found.length === rounds.length) {
+      msg.textContent = `✅ Mot trouvé : ${found}. Chiffre obtenu : ${state.digits[1]}`;
+      state.solved[1] = true;
+      setTimeout(()=>{ render(); modalEl.close(); }, 900);
+      return;
+    }
+    msg.textContent = `✅ Lettre “${letter}” trouvée. Continue !`;
+    setTimeout(()=> loadRound(roundIdx + 1), 600);
+  }
+
+  function failRound(reason: string) {
+    msg.textContent = `❌ ${reason} (fait: ${stepsThisRound}, optimal: ${shortestLen}). Réessaie.`;
+    setTimeout(()=> loadRound(roundIdx), 650);
+  }
+
+  function move(dr:number, dc:number) {
+    const nr = pos.r + dr, nc = pos.c + dc;
+    if (nr<0||nc<0||nr>=grid.length||nc>=grid[0].length) return;
+    if (grid[nr][nc]===1) { msg.textContent='⚠️ Pensée bloquante. Cul-de-sac.'; return; }
+
+    // contrôle par gradient: la distance doit diminuer de 1
+    const dCur = distToExit[pos.r][pos.c];
+    const dNext = distToExit[nr][nc];
+
+    if (!isFinite(dNext)) { failRound('Impasse'); return; }
+    if (!(isFinite(dCur) && dNext === dCur - 1)) {
+      failRound('Chemin non optimal');
+      return;
+    }
+
+    // déplacer
+    pos = { r:nr, c:nc };
+    stepsThisRound++;
+    draw();
+
+    if (grid[nr][nc]===3) {
+      if (stepsThisRound === shortestLen) nextRoundOrFinish();
+      else failRound('Pas optimal à l’arrivée');
+      return;
+    }
+
+    msg.textContent = '';
+    updateStepsLeftUI();
+  }
+
+  body.querySelectorAll<HTMLButtonElement>('.mv').forEach(b =>
+    b.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const d=b.dataset.dir!;
+      if(d==='up')move(-1,0);
+      if(d==='down')move(1,0);
+      if(d==='left')move(0,-1);
+      if(d==='right')move(0,1);
+    })
+  );
+
+  modalEl.addEventListener('keydown', (ev) => {
+    if (ev.key==='ArrowUp'){ev.preventDefault(); move(-1,0);}
+    if (ev.key==='ArrowDown'){ev.preventDefault(); move(1,0);}
+    if (ev.key==='ArrowLeft'){ev.preventDefault(); move(0,-1);}
+    if (ev.key==='ArrowRight'){ev.preventDefault(); move(0,1);}
+  });
+
+  loadRound(0);
+  modal.showModal();
+  return;
+}
+
+
 
       /***** ===== P2 — Taquin 4x4 — Chiffre 6 ===== *****/
       if (idx === 2) {
@@ -748,7 +996,7 @@ function render() {
               <p>But : obtenir <b>1 → 15</b> avec la case vide en bas à droite.</p>
               <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0;">
                 <button id="shuffle" class="btn">Mélanger</button>
-                <button id="reset" class="btn">Réinitialiser</button>
+                
               </div>
               <p style="opacity:.9;">Astuce : seules les tuiles <i>adjacentes</i> à la case vide peuvent bouger (clic ou flèches du clavier).</p>
               <p id="msg" style="margin-top:.5rem;"></p>
@@ -834,10 +1082,10 @@ function render() {
         }
 
         function shuffle() { tiles = shuffledSolvable(); draw(); msg.textContent = ''; }
-        function reset()   { tiles = clone(GOAL); draw(); msg.textContent = 'Réinitialisé.'; }
+        // function reset()   { tiles = clone(GOAL); draw(); msg.textContent = 'Réinitialisé.'; }
 
         body.querySelector<HTMLButtonElement>('#shuffle')!.addEventListener('click', (e) => { e.preventDefault(); shuffle(); });
-        body.querySelector<HTMLButtonElement>('#reset')!.addEventListener('click',   (e) => { e.preventDefault(); reset();   });
+        // body.querySelector<HTMLButtonElement>('#reset')!.addEventListener('click',   (e) => { e.preventDefault(); reset();   });
 
         modalEl.addEventListener('keydown', (ev) => {
           const blank = tiles.indexOf(0);
@@ -860,7 +1108,7 @@ function render() {
         title.textContent = 'Énigme #4 — Cadenas à combinaison';
 
         const SECRET = '3719'; // change si besoin
-        const maxAttempts = 10;
+        const maxAttempts = 5;
         let attempts = 0;
 
         body.innerHTML = `
@@ -966,3 +1214,5 @@ function encodeWithOffset(alpha: string[] | string, plain: string, off: number):
   }
   return out;
 }
+
+
